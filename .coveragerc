@@ -1,0 +1,8 @@
+# .coveragerc
+
+[run]
+include = cogs/*,conftest.py,test/*,db.py,
+omit = *bot.py,*setup.py
+
+[report]
+omit = *bot.py,*setup.py
