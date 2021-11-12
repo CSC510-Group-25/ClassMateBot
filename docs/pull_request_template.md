@@ -19,9 +19,9 @@
 
 <!-- If your changes don't affect working code, delete all checkboxes and write N/A -->
 
-Did you test your changes locally?  
-Did your changes pass all existing tests?  
-Do test cases exist for your changes? If not, please make an issue.
+- [ ] Did you test your changes locally?  
+- [ ] Did your changes pass all existing tests?  
+- [ ] Do test cases exist for your changes? If not, please make an issue.
 
 Note: ensure that all new code has test coverage! 
 
