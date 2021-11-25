@@ -34,6 +34,10 @@ class Deadline(commands.Cog):
                       help="put in current time to get offset needed for proper "
                            "datetime notifications $timenow MMM DD YYYY HH:MM ex. $timenow SEP 25 2024 17:02")
     async def timenow(self, ctx, *, date: str):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         try:
             input_time = datetime.strptime(date, '%b %d %Y %H:%M')
         except ValueError:
@@ -84,6 +88,11 @@ class Deadline(commands.Cog):
                       help="add homework and due-date $addhw CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) "
                       "ex. $addhw CSC510 HW2 SEP 25 2024 17:02")
     async def duedate(self, ctx, coursename: str, hwcount: str, *, date: str):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
+
         author = ctx.message.author
 
         try:
@@ -147,6 +156,10 @@ class Deadline(commands.Cog):
                       help="delete a specific reminder using course name and homework name using "
                       "$deletereminder CLASSNAME HW_NAME ex. $deletereminder CSC510 HW2 ")
     async def deleteReminder(self, ctx, courseName: str, hwName: str):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         reminders_deleted = db.query(
             'SELECT course, homework, due_date FROM reminders WHERE guild_id = %s AND homework = %s AND course = %s',
             (ctx.guild.id, hwName, courseName)
@@ -197,6 +210,10 @@ class Deadline(commands.Cog):
                       help="update the assignment date. $changeduedate CLASSNAME HW_NAME MMM DD YYYY optional(HH:MM) "
                       "ex. $changeduedate CSC510 HW2 SEP 25 2024 17:02 ")
     async def changeduedate(self, ctx, classid: str, hwid: str, *, date: str):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         author = ctx.message.author
         try:
             duedate = datetime.strptime(date, '%b %d %Y %H:%M')
@@ -251,6 +268,10 @@ class Deadline(commands.Cog):
     @commands.command(name="duethisweek", pass_context=True,
                       help="check all the homeworks that are due this week $duethisweek")
     async def duethisweek(self, ctx):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         reminders = db.query(
             "SELECT course, homework, due_date "
             "FROM reminders "
@@ -293,6 +314,10 @@ class Deadline(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @commands.command(name="duetoday", pass_context=True, help="check all the homeworks that are due today $duetoday")
     async def duetoday(self, ctx):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         due_today = db.query(
             "SELECT course, homework, due_date::time AS due_time "
             "FROM reminders "
@@ -332,6 +357,10 @@ class Deadline(commands.Cog):
                       help="check all the homeworks that are due for a specific course $coursedue coursename "
                       "ex. $coursedue CSC505")
     async def coursedue(self, ctx, courseid: str):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         reminders = db.query(
             'SELECT homework, due_date FROM reminders WHERE guild_id = %s AND course = %s',
             (ctx.guild.id, courseid)
@@ -371,6 +400,10 @@ class Deadline(commands.Cog):
     # ---------------------------------------------------------------------------------
     @commands.command(name="listreminders", pass_context=True, help="lists all reminders")
     async def listreminders(self, ctx):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         author = ctx.message.author
         reminders = db.query(
             'SELECT course, homework, due_date FROM reminders WHERE guild_id = %s and author_id = %s',
@@ -409,6 +442,10 @@ class Deadline(commands.Cog):
 
     @commands.command(name="clearreminders", pass_context=True, help="deletes all reminders")
     async def clearallreminders(self, ctx):
+        if not ctx.channel.name == 'assignments':
+            await ctx.author.send('Please send questions to the #assignments channel.')
+            await ctx.message.delete()
+            return
         db.query('DELETE FROM reminders WHERE guild_id = %s', (ctx.guild.id,))
         await ctx.send("All reminders have been cleared..!!")
 
