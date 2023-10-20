@@ -32,10 +32,11 @@ To set up and run the ClassMate Bot:
       DATABASE_URL={your-database-url}
       ```
 7. TO COMPLETELY SET UP THE DATABASE, SEE THE SECTIONS BELOW. Under the **Heroku** section, follow the **Installation** and **Database Setup** guides. DO THIS BEFORE CONTINUING ON TO THE NEXT STEP.
-8. Start the bot. From the project root directory, run `python3 bot` (or `python bot.py` on Windows)
-9. Invite the bot to your server ([Follow instructions here](https://realpython.com/how-to-make-a-discord-bot-python/)) (**Please ensure the bot is running and that the database is set up in order for server initialization to happen properly**)
+8. Create a Google Cloud Project ([Follow instructions here](https://developers.google.com/calendar/api/quickstart/python))
+9. Start the bot. From the project root directory, run `python3 bot` (or `python bot.py` on Windows)
+10. Invite the bot to your server ([Follow instructions here](https://realpython.com/how-to-make-a-discord-bot-python/)) (**Please ensure the bot is running and that the database is set up in order for server initialization to happen properly**)
     * NOTE:  When using the OAuth2 URL Generator, make sure you check the box which gives your bot Administrative permissions
-10. You should now be able to input commands and get responses from the bot as appropriate.
+11. You should now be able to input commands and get responses from the bot as appropriate.
 
 ## Heroku
 
@@ -79,10 +80,46 @@ If you used the PostgreSQL installer, you should have a program called pgAdmin4.
 6. Go to the `Advanced` tab. Inside the **DB Restriction** field, enter your Heroku **Database** credential. (This is the same string you entered into **Maintenance Database**.) DO NOT SKIP THIS STEP.
 7. _Now_ you can press save.
 8. Inside your newly created server, open up the `Databases > Schemas > Public` drop down lists. Right click on `Tables` and select the `Query Tool`.
-9. Inside the query tool, click on `Query Editor.` Copy and paste the contents of [this SQL file](https://github.com/CSC510-Group-25/ClassMateBot/blob/main/init.sql) into the editor and then click on the execute button (looks like a play button).
+9. Inside the query tool, click on `Query Editor.` Copy and paste the contents of [this SQL file](https://github.com/nfoster1492/ClassMateBot-1/blob/main/init.sql) into the editor and then click on the execute button (looks like a play button).
 10. Right click on `Tables` and select `refresh`.
 
 Congratulations! You now have your tables set up.
+
+## Google Calendar setup:
+
+1. Create a Calendar category on your Google Calendar that will be used for the shared bot calendar
+2. Find the Calendar ID of this calendar in the Google Calendar settings under "Integrate calendar" and add it to your .env file
+    ```
+      # .env
+      TOKEN={your-bot-token}
+      DATABASE_URL={your-database-url}
+      CALENDAR_ID={your-calendar-id}
+      ```
+3. In the same settings menu, find the secret address of this calendar and add it to your .env file
+    ```
+      # .env
+      TOKEN={your-bot-token}
+      DATABASE_URL={your-database-url}
+      CALENDAR_ID={your-calendar-id}
+      CALENDAR_ICS={your-secret-address}
+      ```
+4. In your directory of choice create two files, calendar.pdf and ical.ics
+5. Copy the path to this directory and add it to your .env file
+   ```
+      # .env
+      TOKEN={your-bot-token}
+      DATABASE_URL={your-database-url}
+      CALENDAR_ID={your-calendar-id}
+      CALENDAR_ICS={your-secret-address}
+      CALENDAR_PATH={path-to-files}
+      ```
+6. Download wkhtmltopdf ([Download here](https://wkhtmltopdf.org/downloads.html)) Note: If you are on Windows add the path of the downloaded file to your PATH environment variable 
+
+#### Resolving calendar issues
+
+Until the Google Cloud App is pushed to production, the user that is managing the bot will need to generate a new token every seven days:
+1. Delete the `token.json` file from the project root directory.
+2. Run one of the calendar commands specified in /docs/Calendar: this will open a browser window allowing you to reauthenticate the application and generate a new `token.json`
 
 ## Running the bot locally
 

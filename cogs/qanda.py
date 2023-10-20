@@ -5,8 +5,8 @@ from discord.ext import commands
 import db
 import re
 
-class Qanda(commands.Cog):
 
+class Qanda(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -20,13 +20,16 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - User question in new post
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='ask', help='Ask question. Please put question text in quotes. Add *anonymous* or *anon* if desired.'
-                                       'EX: $ask /"When is the exam?/" anonymous')
-    async def askQuestion(self, ctx, qs: str, anonymous=''):
-
+    @commands.command(
+        name="ask",
+        help="Ask question. Please put question text in quotes. Add *anonymous* or *anon* if desired."
+        'EX: $ask /"When is the exam?/" anonymous',
+    )
+    async def askQuestion(self, ctx, qs: str, anonymous=""):
+        """Takes question from the user the reposts it anonymously and numbered"""
         # make sure to check that this is actually being asked in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please send questions to the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send("Please send questions to the #q-and-a channel.")
             await ctx.message.delete()
             return
 
@@ -36,35 +39,44 @@ class Qanda(commands.Cog):
             return
 
         if len(qs) <= 2:
-            await ctx.author.send('Question too short.')
+            await ctx.author.send("Question too short.")
             await ctx.message.delete()
             return
 
         # get author
-        if anonymous == '':
+        if anonymous == "":
             author = ctx.message.author.id
-        elif anonymous == 'anonymous':
+        elif anonymous == "anonymous":
             author = None
-        elif anonymous == 'anon':
+        elif anonymous == "anon":
             author = None
         else:
-            await ctx.author.send('Unknown input for *anonymous* option. Please type **anonymous**, **anon**, or leave blank.')
+            await ctx.author.send(
+                "Unknown input for *anonymous* option. Please type **anonymous**, **anon**, or leave blank."
+            )
             await ctx.message.delete()
             return
 
         # get number of questions + 1
-        num = db.query('SELECT COUNT(*) FROM questions WHERE guild_id = %s', (ctx.guild.id,))[0][0] + 1
+        num = (
+            db.query(
+                "SELECT COUNT(*) FROM questions WHERE guild_id = %s", (ctx.guild.id,)
+            )[0][0]
+            + 1
+        )
 
         # format question
-        author_str = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+        author_str = (
+            "anonymous" if author is None else (await self.bot.fetch_user(author)).name
+        )
         q_str = f"Q{num}: {qs} by {author_str}"
 
         message = await ctx.send(q_str)
 
         # add to db
         db.query(
-            'INSERT INTO questions (guild_id, number, question, author_id, msg_id) VALUES (%s, %s, %s, %s, %s)',
-            (ctx.guild.id, num, qs, author, message.id)
+            "INSERT INTO questions (guild_id, number, question, author_id, msg_id) VALUES (%s, %s, %s, %s, %s)",
+            (ctx.guild.id, num, qs, author, message.id),
         )
 
         # delete original question
@@ -81,10 +93,12 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @askQuestion.error
     async def ask_error(self, ctx, error):
+        """Error handling for ask command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the ask command, do: $ask \"QUESTION\" anonymous*<optional>* \n '
-                '(For example: $ask \"What class is this?\" anonymous)')
+                'To use the ask command, do: $ask "QUESTION" anonymous*<optional>* \n '
+                '(For example: $ask "What class is this?" anonymous)'
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
@@ -100,14 +114,16 @@ class Qanda(commands.Cog):
     # Outputs:
     #      - User answer added to question post
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='answer',
-                      help='Answer question. Please put answer text in quotes. Add *anonymous* or *anon* if desired.'
-                           'EX: $answer 1 /"Oct 12/" anonymous')
-    async def answer(self, ctx, num, ans: str, anonymous=''):
-        ''' answer the specific question '''
+    @commands.command(
+        name="answer",
+        help="Answer question. Please put answer text in quotes. Add *anonymous* or *anon* if desired."
+        'EX: $answer 1 /"Oct 12/" anonymous',
+    )
+    async def answer(self, ctx, num, ans: str, anonymous=""):
+        """Adds user to specific question and post anonymously"""
         # make sure to check that this is actually being asked in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please send answers to the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send("Please send answers to the #q-and-a channel.")
             await ctx.message.delete()
             return
 
@@ -116,34 +132,40 @@ class Qanda(commands.Cog):
             await ctx.message.delete()
             return
 
-#        if len(ans) == 0:
-#            await ctx.author.send('Answer too short.')
-#            await ctx.message.delete()
-#            return
+        #        if len(ans) == 0:
+        #            await ctx.author.send('Answer too short.')
+        #            await ctx.message.delete()
+        #            return
 
         # get author
-        if anonymous == '':
+        if anonymous == "":
             author = ctx.message.author.id
-        elif anonymous == 'anonymous':
+        elif anonymous == "anonymous":
             author = None
-        elif anonymous == 'anon':
+        elif anonymous == "anon":
             author = None
         else:
-            await ctx.author.send('Unknown input for *anonymous* option. Please type **anonymous**, **anon**, or leave blank.')
+            await ctx.author.send(
+                "Unknown input for *anonymous* option. Please type **anonymous**, **anon**, or leave blank."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from freezing. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $answer 1 /"Oct 12/" anonymous')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                'Please include a valid question number. EX: $answer 1 /"Oct 12/" anonymous'
+            )
             await ctx.message.delete()
             return
 
         # check if question number exists
-        q = db.query('SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        q = db.query(
+            "SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('No such question with the number: ' + str(num))
+            await ctx.author.send("No such question with the number: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
@@ -167,23 +189,31 @@ class Qanda(commands.Cog):
 
         # add answer to db
         if "instructor" in [y.name.lower() for y in ctx.author.roles]:
-            role = 'Instructor'
+            role = "Instructor"
         else:
-            role = 'Student'
+            role = "Student"
         db.query(
-            'INSERT INTO answers (guild_id, q_number, answer, author_id, author_role) VALUES (%s, %s, %s, %s, %s)',
-            (ctx.guild.id, num, ans, author, role)
+            "INSERT INTO answers (guild_id, q_number, answer, author_id, author_role) VALUES (%s, %s, %s, %s, %s)",
+            (ctx.guild.id, num, ans, author, role),
         )
 
         # generate and edit msg with answer
-        q_author_str = 'anonymous' if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        q_author_str = (
+            "anonymous" if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        )
         new_answer = f"Q{q[0]}: {q[1]} by {q_author_str}\n"
 
         # get all answers for question and add to msg
-        answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, num))
+        answers = db.query(
+            "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
+        )
         for answer, author, role in answers:
-            a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+            a_author = (
+                "anonymous"
+                if author is None
+                else (await self.bot.fetch_user(author)).name
+            )
             new_answer += f"{a_author} ({role}) Ans: {answer}\n"
 
         # edit message
@@ -192,7 +222,7 @@ class Qanda(commands.Cog):
         except NotFound:
             nf_str = f"Question {num} not found. It's a zombie!"
             await ctx.author.send(nf_str)
-            #await ctx.author.send('Invalid question number: ' + str(num))
+            # await ctx.author.send('Invalid question number: ' + str(num))
 
         # delete user msg
         await ctx.message.delete()
@@ -208,14 +238,15 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @answer.error
     async def answer_error(self, ctx, error):
+        """Error handling for answer command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the answer command, do: $answer QUESTION_NUMBER \"ANSWER\" anonymous*<optional>*\n '
-                '(For example: $answer 2 \"Yes\")')
+                'To use the answer command, do: $answer QUESTION_NUMBER "ANSWER" anonymous*<optional>*\n '
+                '(For example: $answer 2 "Yes")'
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: deleteAllAnswersFor
@@ -226,58 +257,68 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       -
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='DALLAF', help='(PLACEHOLDER NAME) Delete all answers for a question.\n'
-                                    'EX: $DALLAF 1\n'
-                                    'THIS ACTION IS IRREVERSIBLE.\n'
-                                    'Before deletion, archive the question and its answers with\n'
-                                    '$getAnswersFor QUESTION_NUMBER'
-                                    )
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="DALLAF",
+        help="(PLACEHOLDER NAME) Delete all answers for a question.\n"
+        "EX: $DALLAF 1\n"
+        "THIS ACTION IS IRREVERSIBLE.\n"
+        "Before deletion, archive the question and its answers with\n"
+        "$getAnswersFor QUESTION_NUMBER",
+    )
     async def deleteAllAnsFor(self, ctx, num):
-
+        """Lets instructor delete all answers for a question"""
         # make sure to check that this is actually being asked in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from freezing. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $DALLAF 1')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                "Please include a valid question number. EX: $DALLAF 1"
+            )
             await ctx.message.delete()
             return
 
         # check if question number exists
-        q = db.query('SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        q = db.query(
+            "SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('No such question with the number: ' + str(num))
+            await ctx.author.send("No such question with the number: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
         q = q[0]
 
         # retrieve question msg
-        q_author_str = 'anonymous' if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        q_author_str = (
+            "anonymous" if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        )
         qstr = f"Q{q[0]}: {q[1]} by {q_author_str}\n"
 
         rows_deleted = db.query(
-            'SELECT * FROM answers WHERE guild_id = %s AND q_number = %s',
-            (ctx.guild.id, num)
+            "SELECT * FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
         )
 
         rd = len(rows_deleted)
 
         # Delete all answers for question
-        db.query('DELETE FROM answers WHERE guild_id = %s AND q_number = %s',
-                (ctx.guild.id, num))
+        db.query(
+            "DELETE FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
+        )
 
         if rd == 0:
-            await ctx.author.send(
-                f"No answers exist for Q{num}")
+            await ctx.author.send(f"No answers exist for Q{num}")
         else:
-            await ctx.author.send(
-                f"deleted {rd} answers for Q{num}")
+            await ctx.author.send(f"deleted {rd} answers for Q{num}")
 
         # if it's a ghost, return.
         if q[4]:
@@ -311,14 +352,15 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @deleteAllAnsFor.error
     async def deleteAllAnsFor_error(self, ctx, error):
+        """Error handling for deleteAllAnswersFor command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the deleteAllAnswersFor command, do: $DALLAF QUESTION_NUMBER\n '
-                '(Example: $DALLAF 1)')
+                "To use the deleteAllAnswersFor command, do: $DALLAF QUESTION_NUMBER\n "
+                "(Example: $DALLAF 1)"
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: getAllAnsFor
@@ -329,27 +371,35 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - All answers for a question, if any
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='getAnswersFor', help='Get a question and all its answers\n'
-                                       'EX: $getAnswersFor 1')
+    @commands.command(
+        name="getAnswersFor",
+        help="Get a question and all its answers\n" "EX: $getAnswersFor 1",
+    )
     async def getAllAnsFor(self, ctx, num):
-
+        """Gets all answers for a question and DMs them to the user"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from screaming. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $getAnswersFor 1')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                "Please include a valid question number. EX: $getAnswersFor 1"
+            )
             await ctx.message.delete()
             return
 
         # check if question number exists
-        q = db.query('SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        q = db.query(
+            "SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('No such question with the number: ' + str(num))
+            await ctx.author.send("No such question with the number: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
@@ -373,12 +423,16 @@ class Qanda(commands.Cog):
             return
 
         # retrieve question msg
-        q_author_str = 'anonymous' if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        q_author_str = (
+            "anonymous" if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        )
         qstr = f"Q{q[0]}: {q[1]} by {q_author_str}\n"
 
         # get all answers for question and add to msg
-        answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, num))
+        answers = db.query(
+            "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
+        )
 
         # if there are no answers, return
         if len(answers) == 0:
@@ -388,13 +442,16 @@ class Qanda(commands.Cog):
             return
 
         for answer, author, role in answers:
-            a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+            a_author = (
+                "anonymous"
+                if author is None
+                else (await self.bot.fetch_user(author)).name
+            )
             qstr += f"{a_author} ({role}) Ans: {answer}\n"
 
         # send the question and answers to user
         await ctx.author.send(qstr)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: getAllAnsFor_error(self, ctx, error)
@@ -407,10 +464,12 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @getAllAnsFor.error
     async def getAllAnsFor_error(self, ctx, error):
+        """Error handling for getAllAnswersFor command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the getAnswersFor command, do: $getAnswersFor QUESTION_NUMBER\n '
-                '(Example: $getAnswersFor 1)')
+                "To use the getAnswersFor command, do: $getAnswersFor QUESTION_NUMBER\n "
+                "(Example: $getAnswersFor 1)"
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
@@ -423,32 +482,37 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - DMs all questions and answers to the user
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='archiveQA', help='(PLACEHOLDER NAME) DM all questions and their answers\n'
-                                       'EX: $archiveQA')
+    @commands.command(
+        name="archiveQA",
+        help="(PLACEHOLDER NAME) DM all questions and their answers\n" "EX: $archiveQA",
+    )
     async def archiveQA(self, ctx):
-
+        """DM all questions and their answers to the user"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # get questions
-        q = db.query('SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s ORDER BY number ASC',
-                     (ctx.guild.id,))
+        q = db.query(
+            "SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s ORDER BY number ASC",
+            (ctx.guild.id,),
+        )
         if len(q) == 0:
-            await ctx.author.send('No questions found in database.')
+            await ctx.author.send("No questions found in database.")
             # delete user msg
             await ctx.message.delete()
             return
 
         for number, question, author_id, msg_id, is_ghost in q:
-
             # prevent receiving any hidden questions.
             if is_ghost:
                 nf_str = f"Q{number} is a ghost!"
                 await ctx.author.send(nf_str)
-                #go to next question
+                # go to next question
                 continue
 
             # prevent receiving any deleted questions.
@@ -458,21 +522,31 @@ class Qanda(commands.Cog):
                 if not is_ghost:
                     nf_str = f"Q{number} was deleted. It's a zombie!"
                     await ctx.author.send(nf_str)
-                    #go to next question
+                    # go to next question
                     continue
 
-            q_author_str = 'anonymous' if author_id is None else (await self.bot.fetch_user(author_id)).name
+            q_author_str = (
+                "anonymous"
+                if author_id is None
+                else (await self.bot.fetch_user(author_id)).name
+            )
             qstr = f"Q{number}: {question} by {q_author_str}\n"
 
             # get all answers for question and add to msg
-            answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, number))
+            answers = db.query(
+                "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+                (ctx.guild.id, number),
+            )
 
             if len(answers) == 0:
                 qstr += f"No answers for Q{number}\n"
             else:
                 for answer, author, role in answers:
-                    a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+                    a_author = (
+                        "anonymous"
+                        if author is None
+                        else (await self.bot.fetch_user(author)).name
+                    )
                     qstr += f"{a_author} ({role}) Ans: {answer}\n"
 
             # send the question and answers to user
@@ -492,9 +566,9 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @archiveQA.error
     async def archiveqa_error(self, ctx, error):
+        """Error handling for archiveQA command"""
         await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: deleteAllQAs
@@ -504,29 +578,35 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       -
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='deleteAllQA', help='Delete all questions and answers from the database and channel.\n'
-                                'EX: $deleteAllQA\n'
-                                'THIS COMMAND IS IRREVERSIBLE.\n'
-                                'BE SURE TO ARCHIVE ALL QUESTIONS BEFORE DELETION.\n'
-                                'To archive, use the $unearthZombies command followed by $allChannelGhosts,'
-                                ' and then use $archiveQA.'
-                                )
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="deleteAllQA",
+        help="Delete all questions and answers from the database and channel.\n"
+        "EX: $deleteAllQA\n"
+        "THIS COMMAND IS IRREVERSIBLE.\n"
+        "BE SURE TO ARCHIVE ALL QUESTIONS BEFORE DELETION.\n"
+        "To archive, use the $unearthZombies command followed by $allChannelGhosts,"
+        " and then use $archiveQA.",
+    )
     async def deleteAllQAs(self, ctx):
-
+        """Deletes all quetsions and answers from the database and channel"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # get questions
-        q = db.query('SELECT msg_id, is_ghost FROM questions WHERE guild_id = %s',
-                     (ctx.guild.id,))
+        q = db.query(
+            "SELECT msg_id, is_ghost FROM questions WHERE guild_id = %s",
+            (ctx.guild.id,),
+        )
 
         numqs = len(q)
         if numqs == 0:
-            await ctx.author.send('No questions found in database.')
+            await ctx.author.send("No questions found in database.")
             return
 
         # Zombies are questions that were manually deleted from the channel. They need to be
@@ -550,20 +630,18 @@ class Qanda(commands.Cog):
                 await message.delete()
 
         # count ghosts
-        #spooks = db.query(
+        # spooks = db.query(
         #    'SELECT * FROM questions WHERE guild_id = %s AND is_ghost IS TRUE',
         #    (ctx.guild.id,)
-        #)
+        # )
 
-        #spooky = len(spooks)
+        # spooky = len(spooks)
 
         # Delete all questions
-        db.query('DELETE FROM questions WHERE guild_id = %s',
-                (ctx.guild.id,))
+        db.query("DELETE FROM questions WHERE guild_id = %s", (ctx.guild.id,))
 
         # Delete all answers
-        db.query('DELETE FROM answers WHERE guild_id = %s',
-                (ctx.guild.id,))
+        db.query("DELETE FROM answers WHERE guild_id = %s", (ctx.guild.id,))
 
         report = f"Deleted {numqs} questions from the database, including {zombies} zombies and {ghosts} ghosts."
         await ctx.author.send(report)
@@ -582,9 +660,9 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @deleteAllQAs.error
     async def deleteAllQAs_error(self, ctx, error):
+        """Error handling for deleteAllQA command"""
         await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: deleteOneQuestion
@@ -595,30 +673,38 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       -
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='deleteQuestion', help='Delete (hide) one question but leave answers untouched.'
-                                    ' Leaves database ghosts.\n'
-                                    'EX: $deleteQuestion QUESTION_NUMBER\n'
-                                    )
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="deleteQuestion",
+        help="Delete (hide) one question but leave answers untouched."
+        " Leaves database ghosts.\n"
+        "EX: $deleteQuestion QUESTION_NUMBER\n",
+    )
     async def deleteOneQuestion(self, ctx, num):
-
+        """Lets the instructor delete one question, but leave the answers untouched"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from freezing. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $deleteQuestion 1')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                "Please include a valid question number. EX: $deleteQuestion 1"
+            )
             await ctx.message.delete()
             return
 
-       # check if question number exists
-        q = db.query('SELECT number, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        # check if question number exists
+        q = db.query(
+            "SELECT number, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('Question number not in database: ' + str(num))
+            await ctx.author.send("Question number not in database: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
@@ -627,8 +713,10 @@ class Qanda(commands.Cog):
 
         # if is_ghost is false, set to true
         if not q[2]:
-            db.query('UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s',
-            (ctx.guild.id, num))
+            db.query(
+                "UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s",
+                (ctx.guild.id, num),
+            )
         else:
             sendme = f"Q{q[0]} is already a ghost!"
             await ctx.author.send(sendme)
@@ -659,14 +747,15 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @deleteOneQuestion.error
     async def deleteOneQuestion_error(self, ctx, error):
+        """Error handling for deleteQuestion command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the deleteQuestion command, do: $deleteQuestion QUESTION_NUMBER\n '
-                '(Example: $deleteQuestion 1')
+                "To use the deleteQuestion command, do: $deleteQuestion QUESTION_NUMBER\n "
+                "(Example: $deleteQuestion 1"
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: channelOneGhost
@@ -677,28 +766,37 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - All answers for a ghost question, if any
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='channelGhost', help='Gets a specific ghost (question deleted with command) and all its answers.\n'
-                                       'EX: $channelGhost 1')
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="channelGhost",
+        help="Gets a specific ghost (question deleted with command) and all its answers.\n"
+        "EX: $channelGhost 1",
+    )
     async def channelOneGhost(self, ctx, num):
-
+        """Lets the instructor get a specific ghost question"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from screaming. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $channelGhost 1')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                "Please include a valid question number. EX: $channelGhost 1"
+            )
             await ctx.message.delete()
             return
 
         # check if question number exists
-        q = db.query('SELECT number, question, author_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        q = db.query(
+            "SELECT number, question, author_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('No such question with the number: ' + str(num))
+            await ctx.author.send("No such question with the number: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
@@ -706,15 +804,19 @@ class Qanda(commands.Cog):
         q = q[0]
 
         if not q[3]:
-            await ctx.author.send('This question is not a ghost. Fetching anyway. . .')
+            await ctx.author.send("This question is not a ghost. Fetching anyway. . .")
 
         # retrieve question msg
-        q_author_str = 'anonymous' if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        q_author_str = (
+            "anonymous" if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        )
         qstr = f"Q{q[0]}: {q[1]} by {q_author_str}\n"
 
         # get all answers for question and add to msg
-        answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, num))
+        answers = db.query(
+            "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
+        )
 
         # if there are no answers, return
         if len(answers) == 0:
@@ -724,13 +826,16 @@ class Qanda(commands.Cog):
             return
 
         for answer, author, role in answers:
-            a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+            a_author = (
+                "anonymous"
+                if author is None
+                else (await self.bot.fetch_user(author)).name
+            )
             qstr += f"{a_author} ({role}) Ans: {answer}\n"
 
         # send the question and answers to user
         await ctx.author.send(qstr)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: channelOneGhost_error(self, ctx, error)
@@ -743,14 +848,15 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @channelOneGhost.error
     async def channelOneGhost_error(self, ctx, error):
+        """Error handling for channelGhost command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the channelGhost command, do: $channelGhost QUESTION_NUMBER\n '
-                '(Example: $channelGhost 1)')
+                "To use the channelGhost command, do: $channelGhost QUESTION_NUMBER\n "
+                "(Example: $channelGhost 1)"
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: channelGhostQs
@@ -760,43 +866,58 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       -
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='allChannelGhosts', help='Get all the questions that are in the database but '
-                                    'not in the channel. Does not detect zombies.\n'
-                                    'EX: $allChannelGhosts\n'
-                                    'To detect zombies and convert them to ghosts, use $unearthZombies'
-                                    )
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="allChannelGhosts",
+        help="Get all the questions that are in the database but "
+        "not in the channel. Does not detect zombies.\n"
+        "EX: $allChannelGhosts\n"
+        "To detect zombies and convert them to ghosts, use $unearthZombies",
+    )
     async def channelGhostQs(self, ctx):
-
+        """Lets the instructor get the questions that are in the database but not inthe channel"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
-         # get questions
-        q = db.query('SELECT number, question, author_id FROM questions WHERE guild_id = %s AND is_ghost IS TRUE ORDER BY number ASC',
-                     (ctx.guild.id,))
+        # get questions
+        q = db.query(
+            "SELECT number, question, author_id FROM questions WHERE guild_id = %s AND is_ghost IS TRUE ORDER BY number ASC",
+            (ctx.guild.id,),
+        )
         if len(q) == 0:
-            await ctx.author.send('No ghosts found in database.')
+            await ctx.author.send("No ghosts found in database.")
             # delete user msg
             await ctx.message.delete()
             return
 
         for number, question, author_id in q:
-
-            q_author_str = 'anonymous' if author_id is None else (await self.bot.fetch_user(author_id)).name
+            q_author_str = (
+                "anonymous"
+                if author_id is None
+                else (await self.bot.fetch_user(author_id)).name
+            )
             qstr = f"Q{number}: {question} by {q_author_str}\n"
 
             # get all answers for question and add to msg
-            answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, number))
+            answers = db.query(
+                "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+                (ctx.guild.id, number),
+            )
 
             if len(answers) == 0:
                 qstr += f"No answers for Q{number}\n"
             else:
                 for answer, author, role in answers:
-                    a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+                    a_author = (
+                        "anonymous"
+                        if author is None
+                        else (await self.bot.fetch_user(author)).name
+                    )
                     qstr += f"{a_author} ({role}) Ans: {answer}\n"
 
             # send the question and answers to user
@@ -816,6 +937,7 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @channelGhostQs.error
     async def channelGhostQs_error(self, ctx, error):
+        """Error handling for allChannelGhosts command"""
         await ctx.author.send(error)
         await ctx.message.delete()
 
@@ -828,24 +950,30 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       -
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='unearthZombies', help='Assign ghost status to all manually deleted questions '
-                                    'in case there is a need to restore them.\n'
-                                    'EX: $unearthZombies\n'
-                                    )
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="unearthZombies",
+        help="Assign ghost status to all manually deleted questions "
+        "in case there is a need to restore them.\n"
+        "EX: $unearthZombies\n",
+    )
     async def unearthZombieQs(self, ctx):
-
+        """Assigns ghost status to all manually deleted questions in case there is a need to restore them"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # get questions
-        q = db.query('SELECT number, msg_id FROM questions WHERE guild_id = %s AND is_ghost IS FALSE',
-                     (ctx.guild.id,))
+        q = db.query(
+            "SELECT number, msg_id FROM questions WHERE guild_id = %s AND is_ghost IS FALSE",
+            (ctx.guild.id,),
+        )
         if len(q) == 0:
-            await ctx.author.send('No zombies detected.')
+            await ctx.author.send("No zombies detected.")
             # delete user msg
             await ctx.message.delete()
             return
@@ -856,8 +984,10 @@ class Qanda(commands.Cog):
                 await ctx.fetch_message(msg_id)
             except NotFound:
                 zombies += 1
-                db.query('UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s',
-                (ctx.guild.id, number))
+                db.query(
+                    "UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s",
+                    (ctx.guild.id, number),
+                )
 
         if zombies == 0:
             await ctx.author.send("No zombies detected.")
@@ -881,6 +1011,7 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @unearthZombieQs.error
     async def unearthZombieQs_error(self, ctx, error):
+        """Error handling for unearthZombies command"""
         await ctx.author.send(error)
         await ctx.message.delete()
 
@@ -893,28 +1024,37 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - All answers for a ghost question, if any
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='reviveGhost', help='Restores a ghost or deleted/hidden question to the channel.\n'
-                                       'EX: $reviveGhost 1')
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="reviveGhost",
+        help="Restores a ghost or deleted/hidden question to the channel.\n"
+        "EX: $reviveGhost 1",
+    )
     async def restoreGhost(self, ctx, num):
-
+        """Restores a ghost of deleted question to the channel"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
         # to stop SQL from screaming. Only allows valid numbers.
-        if not re.match(r'^([1-9]\d*|0)$', num):
-            await ctx.author.send('Please include a valid question number. EX: $reviveGhost 1')
+        if not re.match(r"^([1-9]\d*|0)$", num):
+            await ctx.author.send(
+                "Please include a valid question number. EX: $reviveGhost 1"
+            )
             await ctx.message.delete()
             return
 
         # check if question number exists
-        q = db.query('SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s',
-                     (ctx.guild.id, num))
+        q = db.query(
+            "SELECT number, question, author_id, msg_id, is_ghost FROM questions WHERE guild_id = %s AND number = %s",
+            (ctx.guild.id, num),
+        )
         if len(q) == 0:
-            await ctx.author.send('No such question with the number: ' + str(num))
+            await ctx.author.send("No such question with the number: " + str(num))
             # delete user msg
             await ctx.message.delete()
             return
@@ -922,17 +1062,25 @@ class Qanda(commands.Cog):
         q = q[0]
 
         # retrieve question msg
-        q_author_str = 'anonymous' if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        q_author_str = (
+            "anonymous" if q[2] is None else (await self.bot.fetch_user(q[2])).name
+        )
         qstr = f"Q{q[0]}: {q[1]} by {q_author_str}\n"
 
         # get all answers for question and add to msg
-        answers = db.query('SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s',
-                           (ctx.guild.id, num))
+        answers = db.query(
+            "SELECT answer, author_id, author_role FROM answers WHERE guild_id = %s AND q_number = %s",
+            (ctx.guild.id, num),
+        )
 
         # if there are answers, restore them
         if len(answers) != 0:
             for answer, author, role in answers:
-                a_author = 'anonymous' if author is None else (await self.bot.fetch_user(author)).name
+                a_author = (
+                    "anonymous"
+                    if author is None
+                    else (await self.bot.fetch_user(author)).name
+                )
                 qstr += f"{a_author} ({role}) Ans: {answer}\n"
 
         try:
@@ -940,17 +1088,20 @@ class Qanda(commands.Cog):
         except NotFound:
             # if the question was manually deleted, post it again (with all its answers)!
             message = await ctx.send(qstr)
-            db.query('UPDATE questions SET msg_id = %s WHERE guild_id = %s AND number = %s',
-            (message.id, ctx.guild.id, num))
+            db.query(
+                "UPDATE questions SET msg_id = %s WHERE guild_id = %s AND number = %s",
+                (message.id, ctx.guild.id, num),
+            )
         else:
             # restore the question
             await msg.edit(content=qstr)
 
         # if is_ghost is true, set to false
         if q[4]:
-            db.query('UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s',
-            (ctx.guild.id, num))
-
+            db.query(
+                "UPDATE questions SET is_ghost = NOT is_ghost WHERE guild_id = %s AND number = %s",
+                (ctx.guild.id, num),
+            )
 
         await ctx.message.delete()
 
@@ -965,18 +1116,15 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @restoreGhost.error
     async def restoreGhost_error(self, ctx, error):
+        """Error handling for reviveGhost command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.author.send(
-                'To use the reviveGhost command, do: $reviveGhost QUESTION_NUMBER\n '
-                '(Example: $reviveGhost 1)')
+                "To use the reviveGhost command, do: $reviveGhost QUESTION_NUMBER\n "
+                "(Example: $reviveGhost 1)"
+            )
         else:
             await ctx.author.send(error)
         await ctx.message.delete()
-
-
-
-
-
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: countGhosts
@@ -986,18 +1134,21 @@ class Qanda(commands.Cog):
     #    Outputs:
     #       - The number of ghost questions
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='spooky', help='Is this channel haunted?\n'
-                                       'EX: $spooky')
+    @commands.command(name="spooky", help="Is this channel haunted?\n" "EX: $spooky")
     async def countGhosts(self, ctx):
-
+        """Counts the number of ghost and zombie questions in the channel. Mainly for fun but could be useful"""
         # make sure to check that this is actually being used in the Q&A channel
-        if not ctx.channel.name == 'q-and-a':
-            await ctx.author.send('Please use this command inside the #q-and-a channel.')
+        if not ctx.channel.name == "q-and-a":
+            await ctx.author.send(
+                "Please use this command inside the #q-and-a channel."
+            )
             await ctx.message.delete()
             return
 
-        q = db.query('SELECT msg_id, is_ghost FROM questions WHERE guild_id = %s',
-                     (ctx.guild.id,))
+        q = db.query(
+            "SELECT msg_id, is_ghost FROM questions WHERE guild_id = %s",
+            (ctx.guild.id,),
+        )
         # if database is empty
         if len(q) == 0:
             await ctx.author.send("This channel isn't haunted.")
@@ -1026,7 +1177,6 @@ class Qanda(commands.Cog):
         await ctx.author.send(spookstr)
         await ctx.message.delete()
 
-
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: countGhosts_error(self, ctx, error)
     #    Description: prints error message for spooky command
@@ -1038,10 +1188,12 @@ class Qanda(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @countGhosts.error
     async def countGhosts_error(self, ctx, error):
+        """Error handling for spooky command"""
         await ctx.author.send(error)
         await ctx.message.delete()
 
 
-def setup(bot):
+async def setup(bot):
+    """Adds the file to the bot's cog system"""
     n = Qanda(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)

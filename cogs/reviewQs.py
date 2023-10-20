@@ -2,8 +2,8 @@
 from discord.ext import commands
 import db
 
-class ReviewQs(commands.Cog):
 
+class ReviewQs(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -15,12 +15,15 @@ class ReviewQs(commands.Cog):
     #    Outputs:
     #       - a random question from the database (in user guild) is sent by the bot
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.command(name='getQuestion', help='Get a review question. EX: $getQuestion')
+    @commands.command(
+        name="getQuestion", help="Get a review question. EX: $getQuestion"
+    )
     async def getQuestion(self, ctx):
+        """Prints a random question from the database"""
         # get random question from db
         rand = db.query(
-            'SELECT question, answer FROM review_questions WHERE guild_id = %s ORDER BY RANDOM() LIMIT 1',
-            (ctx.guild.id, )
+            "SELECT question, answer FROM review_questions WHERE guild_id = %s ORDER BY RANDOM() LIMIT 1",
+            (ctx.guild.id,),
         )
 
         # send question to guild
@@ -38,9 +41,9 @@ class ReviewQs(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @getQuestion.error
     async def get_question_error(self, ctx, error):
+        """Error handling for getQuestion command"""
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(
-                'To use the getQuestion command, do: $getQuestion \n')
+            await ctx.send("To use the getQuestion command, do: $getQuestion \n")
         else:
             await ctx.author.send(error)
         print(error)
@@ -56,18 +59,23 @@ class ReviewQs(commands.Cog):
     #    Outputs:
     #       - success message
     # -----------------------------------------------------------------------------------------------------------------
-    @commands.has_role('Instructor')
-    @commands.command(name='addQuestion', help='Add a review question. '
-                                               'EX: $addQuestion \"What class is this?\" \"Software Engineering\"')
+    @commands.has_role("Instructor")
+    @commands.command(
+        name="addQuestion",
+        help="Add a review question. "
+        'EX: $addQuestion "What class is this?" "Software Engineering"',
+    )
     async def addQuestion(self, ctx, qs: str, ans: str):
+        """Allows instructors to add review questions"""
         # add question to database
         db.query(
-            'INSERT INTO review_questions (guild_id, question, answer) VALUES (%s, %s, %s)',
-            (ctx.guild.id, qs, ans)
+            "INSERT INTO review_questions (guild_id, question, answer) VALUES (%s, %s, %s)",
+            (ctx.guild.id, qs, ans),
         )
 
         await ctx.send(
-            f"A new review question has been added! Question: {qs} and Answer: {ans}.")
+            f"A new review question has been added! Question: {qs} and Answer: {ans}."
+        )
 
     # -----------------------------------------------------------------------------------------------------------------
     #    Function: add_question_error(self, ctx, error)
@@ -80,15 +88,19 @@ class ReviewQs(commands.Cog):
     # -----------------------------------------------------------------------------------------------------------------
     @addQuestion.error
     async def add_question_error(self, ctx, error):
+        """Error handling for addQuestion command"""
         if isinstance(error, commands.MissingRequiredArgument):
             await ctx.send(
-                'To use the addQuestion command, do: $addQuestion \"Question\" \"Answer\" \n'
-                '(For example: $addQuestion \"What class is this?\" "CSC510")')
+                'To use the addQuestion command, do: $addQuestion "Question" "Answer" \n'
+                '(For example: $addQuestion "What class is this?" "CSC510")'
+            )
         else:
             await ctx.author.send(error)
         print(error)
         await ctx.message.delete()
 
-def setup(bot):
+
+async def setup(bot):
+    """Adds the file to the bot's cog system"""
     n = ReviewQs(bot)
-    bot.add_cog(n)
+    await bot.add_cog(n)
